@@ -11,13 +11,20 @@
   "author": "Wawa SENSEI <contact@wawasensei.dev>",
   "dependencies": {
     "@google/generative-ai": "^0.20.0",
+    "@prisma/client": "^5.20.0",
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
+    "dotenv": "^16.4.5",
     "elevenlabs-node": "^1.2.0",
-    "express": "^4.18.2",
-    "openai": "^4.26.0"
+    "express": "^4.21.0",
+    "jose": "^5.9.3",
+    "jsonwebtoken": "^9.0.2",
+    "openai": "^4.26.0",
+    "pg": "^8.13.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "prisma": "^5.20.0"
   }
 }

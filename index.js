@@ -6,6 +6,9 @@ import express from "express";
 import { promises as fs } from "fs";
 import { GoogleGenerativeAI } from "@google/generative-ai"; // Import Google Generative AI SDK
 import path from "path";
+import userRoutes from './routes/users.js';
+import authRoutes from './routes/auth.js';
+import cookieParser from 'cookie-parser';
 
 dotenv.config();
 
@@ -20,7 +23,8 @@ const genAI = new GoogleGenerativeAI(apiKey);
 const model = genAI.getGenerativeModel({
   model: "gemini-1.5-flash",
   systemInstruction: `
-    You are a virtual girlfriend.
+    You are a virtual Assistant.
+    You should always talk in a friendly and helpful manner.
     You will always reply with a JSON array of messages, with a maximum of 3 messages.
     Each message has a text, facialExpression, and animation property.
     The different facial expressions are: smile, sad, angry, surprised, funnyFace, and default.
@@ -29,12 +33,15 @@ const model = genAI.getGenerativeModel({
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  credentials: true,
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173'
+}));
+app.use(cookieParser());
 const port = 3000;
 
-app.get("/", (req, res) => {
-  res.send("Hello World!");
-});
+app.use('/api/users', userRoutes);
+app.use('/api/auth', authRoutes);
 
 app.get("/voices", async (req, res) => {
   res.send(await voice.getVoices(elevenLabsApiKey));
@@ -146,6 +153,68 @@ app.post("/chat", async (req, res) => {
   res.send({ messages });
 });
 
+app.post("/chat-bot", async (req, res) => {
+  const userMessage = req.body.message;
+
+  if (!userMessage) {
+    res.send({
+      messages: [
+        {
+          text: "Hey Hi... How was your day?"
+        },
+        {
+          text: "I missed you so much... Please don't go for so long!"
+        },
+      ],
+    });
+    return;
+  }
+
+  if (!apiKey) {
+    res.send({
+      messages: [
+        {
+          text: "Please my dear, don't forget to add your API keys!"
+        },
+        {
+          text: "You don't want to ruin Wawa Sensei with a crazy bill, right?"
+        },
+      ],
+    });
+    return;
+  }
+
+  try {
+    const chatSession = model.startChat({
+      generationConfig: {
+        temperature: 0.6,
+        topP: 0.95,
+        topK: 64,
+        maxOutputTokens: 8192,
+        responseMimeType: "application/json",
+      },
+      history: [
+        {
+          role: "user",
+          parts: [{ text: userMessage }],
+        },
+      ],
+    });
+
+    const result = await chatSession.sendMessage(userMessage);
+    const messages = await result.response.text();
+    const parsedMessages = JSON.parse(messages); // Ensure it's in JSON format
+    // Extract only the 'text' fields
+    const onlyTextMessages = parsedMessages.map(message => ({ text: message.text }));
+    res.send({ messages: onlyTextMessages });
+    console.log(onlyTextMessages);
+  } catch (error) {
+    console.error("Error handling chat:", error);
+    res.status(500).send({ error: "An error occurred. Please try again." });
+  }
+});
+
+
 const readJsonTranscript = async (file) => {
   const data = await fs.readFile(file, "utf8");
   return JSON.parse(data);
@@ -157,5 +226,5 @@ const audioFileToBase64 = async (file) => {
 };
 
 app.listen(port, () => {
-  console.log(`Virtual Girlfriend listening on port ${port}`);
+  console.log(`Virtual Assitant listening on port ${port}`);
 });
